@@ -1,79 +1,91 @@
-from .template import Page, Paragraph, DataTable
+from .template import Page, piss, Paragraphs
+from PySVG import Table
+
 from structures import ReportForm
 
 
 class Report(Page):
     def __init__(self, client_forms: list[ReportForm]):
-        super().__init__(f'PISS Challenge 2023 A: Comparison Report')
+        super().__init__(f'PISS Challenge {piss}: Comparison Report')
         self._y = 110
+        self.spacing = 50
+
         self._grading()
         self._participants(client_forms)
         self._sign_off()
 
     def _grading(self):
-        sstr = 'There are three possible paths to grade each result: ' \
-               '\n \n The first method uses the standard score which must be within ±3. ' \
-               '\n The standard score requires that at least three labs reported quantitative results ' \
-               'for a particular drug in a particular sample. ' \
-               '\n \n The second method uses the calculated mean to determine the bias from the reported results. ' \
-               '\n This method is used when standard score is not applicable. ' \
-               '\n The absolute bias should be less than 30%. ' \
-               '\n \n The third method grades the result against the spiked concentration. ' \
-               '\n The absolute spike bias should be less than 30%. ' \
-               '\n \n The results are considered acceptable if any of the three grading guidelines are met. ' \
-               'Any analytes that do not meet these guidelines may require further analysis and interpretation ' \
-               'from the laboratory director or technical supervisor to be approved.'
+        p = Paragraphs(18)
+        p.y = self._y
 
-        grading = Paragraph(self)
-        grading.header = ''
-        grading.spec_str = sstr
-        grading.y = self._y
-        self._y += grading.h + 50
+        p.addParagraph('There are three possible paths to grade each result:')
+        p.addParagraph('')
+        p.addParagraph('The first method uses the standard score which must be within ±3.')
+        p.addParagraph('The standard score requires that at least three labs reported quantitative results '
+                       'for a particular drug in a particular sample.')
+        p.addParagraph('')
+        p.addParagraph('The second method uses the calculated mean to determine the bias from the reported results.')
+        p.addParagraph('This method is used when standard score is not applicable. '
+                       'The absolute bias should within ±30%.')
+        p.addParagraph('The third method grades the result against the spiked concentration.')
+        p.addParagraph('The absolute spike bias should within ±30%.')
+        p.addParagraph('')
+        p.addParagraph('The results are considered acceptable if any of the three grading guidelines are met. '
+                       'Any analytes that do not meet these guidelines may require further analysis and '
+                       'interpretation from the laboratory director or technical supervisor to be approved.')
 
-        self.sections.append(grading)
+        self.addChild(p)
+        p.set()
+
+        self._y += p.h + self.spacing
 
     def _participants(self, forms: list[ReportForm]):
-        text = self.get_text()
-        text.x = 50
-        text.y = self._y
+        # Header ######################################################################################################
+        t = self.text()
+        t.x = 50
+        t.y = self._y
+        t.size += 2
+        t.text = 'Participating Labs:'
+        self.addChild(t)
+
         self._y += 25
-        text.font.size += 2
-        text.text = 'Participating Labs:'
 
-        self.sections.append(text)
-
+        # Table #######################################################################################################
         header = [['Lab Name', 'CLIA ID']]
         data = [[lab.name, lab.clia] for lab in forms]
 
-        table = DataTable(self, header + data)
-
+        table = Table(self.text(), header + data, w=750)
         table.set_row_height(23)
 
         weights = [0.25, 0.75]
         table.weighted_col_width(750, weights)
 
-        for col in table.cols.values():
-            col.align_text(col.align_left)
+        for row in table.r_rng:
+            table.boxes[row, 0].alignment = table.boxes[row, 0].left
+            table.boxes[row, 1].alignment = table.boxes[row, 1].right
 
-        table.set_sizes()
+        table.x = 50
         table.y = self._y
-        self._y += table.h + 50
+        table.set()
 
-        self.sections.append(table)
+        self.addChild(table.root)
+        self._y += table.h + self.spacing
 
     def _sign_off(self):
-        sstr = 'I have reviewed the interlaboratory comparison study. ' \
-               'Results are comparable to other accredited laboratories using laboratory developed ' \
-               'tests and pass internal acceptability criteria. ' \
-               'At least 5 samples were evaluated as part of this comparison study. ' \
-               'Samples represent blanks as well as low, medium and high concentrations. \n \n \n \n ' \
-               '\n \n Laboratory Director: __________________________________     Date: ________________________ ' \
-               '\n \n ' \
-               '\n \n Technical Supervisor: _________________________________     Date: ________________________'
+        p = Paragraphs(18)
+        p.y = self._y
 
-        approval = Paragraph(self)
-        approval.header = ''
-        approval.spec_str = sstr
-        approval.y = self._y
+        p.addParagraph('I have reviewed the interlaboratory comparison study. '
+                       'Results are comparable to other accredited laboratories using laboratory developed tests and '
+                       'pass internal acceptability criteria. '
+                       'At least 5 samples were evaluated as part of this comparison study. '
+                       'Samples represent blanks as well as low, medium, and high concentrations. ')
+        p.addParagraph('')
+        p.addParagraph('')
+        p.addParagraph('Laboratory Director: __________________________________     Date: ________________________ ')
+        p.addParagraph('')
+        p.addParagraph('')
+        p.addParagraph('Technical Supervisor: _________________________________     Date: ________________________')
 
-        self.sections.append(approval)
+        self.addChild(p)
+        p.set()
